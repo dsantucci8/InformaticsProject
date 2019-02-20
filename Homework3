@@ -1,0 +1,77 @@
+#Shadi Taha
+#2/18/2019
+#CS3910 Spring 2019
+
+import pandas as pd
+import sqlite3
+
+print('Starting...')
+
+# Reads the csv file and places into a Dataframe
+dirty_csv = str(input("Input the name of the first CSV you want cleaned (Include .csv): "))
+print('Dirty CSV name: '+dirty_csv)
+df = pd.read_csv(dirty_csv) #reads dirty CSV into Dataframe
+
+#Reshapes from Wide to Long format
+df = pd.melt(df, id_vars=['State'])
+
+#Renames the Column names
+df.columns = ['State','Type','Rate']
+
+#Splits the "2011 Divorce" into "Year" and "Event" columns
+df['Year'], df['Event'] = df['Type'].str.split(' ', 1).str
+
+#Drops the original un-split column
+df = df.drop(['Type'], axis=1)
+
+#Gets the column names and places into a list
+cols = df.columns.tolist()
+
+#Re-order the list of columns to preferred order
+reorderColumn = cols[:1] + cols[2:] + cols[1:2]
+
+#Applies the column ordering to the dataframe
+df = df[reorderColumn]
+
+print('Successfully processed DataFrame from Wide to Long')
+print('')
+
+##### Create the new cleaned CSV File #####
+
+#Ask user for the new CSV name they want.
+new_csv_name = str(input("Enter a name for the new CSV (Include .csv): "))
+print('CSV NAME: '+new_csv_name)
+df.to_csv(new_csv_name, index=False)  #Creates the CSV
+print('Created the CSV successfully.')
+
+##### DATABASE #####
+
+# Ask user for name of Database they want.
+db_name = str(input("Enter a name for the new Database (Include .db): "))
+print('Database name: '+db_name)
+
+#Connection to database and create a cursor
+conn = sqlite3.connect(db_name)
+cur = conn.cursor()
+
+#Ask user for a table name, and creates it.
+new_table_name = str(input("Enter a name for the table: "))
+print('Table name: '+new_table_name)
+df.to_sql(new_table_name, conn, if_exists='replace', index=False) #Dataframe -> SQL
+print('Dataframe to SQL successful.')
+
+#Shows the user everything in the database
+print('Here are all the SQL rows below...')
+#Creates the query to show all rows
+show_all_script = str("select * from %s;") % new_table_name
+#Executes the query
+cur.execute(show_all_script)
+#Fetches the results and displays them
+results = cur.fetchall()
+print(results)
+
+print('All done, Thanks!')
+
+#Commits and closes the connection
+conn.commit()
+conn.close()
